@@ -6,6 +6,7 @@
 
 <p align="center"><a href="README zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
+![Interface Preview](docs/音视频总结en.png) 
 
 Open-source version of the [AI Audio and Video Summary](https://302.ai/tools/videosum/) from [302.AI](https://302.ai).
 You can directly log in to 302.AI for a zero-code, zero-configuration online experience.
