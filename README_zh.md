@@ -2,9 +2,9 @@
 
 <p align="center">AI音视频总结支持将Youtube、Bilibili、抖音、小红书以及网络上mp3、mp4文件链接的音视频字幕内容进行总结，并生成思维导图，还可以将字幕进行翻译，下载为SRT格式或TXT格式，还可将视频内容作为上下文与AI大模型进行对话，快速了解视频内容。</p>
 
-<p align="center"><a href="https://302.ai/tools/word/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
+<p align="center"><a href="https://302.ai/tools/videosum/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
 
-<p align="center"><a href="README zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
+<p align="center"><a href="README_zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
 ![界面预览](docs/音视频总结.png)     
 
