@@ -6,7 +6,7 @@
 
 <p align="center"><a href="README_zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
-![界面预览](docs/音视频总结jp.png)    
+![界面预览](docs/音视频总结新3.png)    
 
 [302.AI](https://302.ai)の[AI音声動画サマリー](https://302.ai/ja/tools/videosum/)のオープンソース版です。
 302.AIに直接ログインすることで、コード不要、設定不要のオンライン体験が可能です。
