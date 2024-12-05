@@ -2,9 +2,9 @@
 
 <p align="center">AI audio and video summarization supports summarizing the subtitle content of audio and video from YouTube, Bilibili, Douyin, Xiaohongshu as well as links to mp3 and mp4 files on the Internet, and generating mind maps. It can also translate the subtitles, download them in SRT or TXT format, and use the video content as context to have conversations with AI large models, enabling users to quickly understand the video content.</p>
 
-<p align="center"><a href="https://302.ai/tools/word/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
+<p align="center"><a href="https://302.ai/en/tools/videosum/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
 
-<p align="center"><a href="README zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
+<p align="center"><a href="README_zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
 ![Interface Preview](docs/音视频总结en.png) 
 
