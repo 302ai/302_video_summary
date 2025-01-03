@@ -2,24 +2,27 @@
 
 <p align="center">AI音视频总结支持将Youtube、Bilibili、抖音、小红书以及网络上mp3、mp4文件链接的音视频字幕内容进行总结，并生成思维导图，还可以将字幕进行翻译，下载为SRT格式或TXT格式，还可将视频内容作为上下文与AI大模型进行对话，快速了解视频内容。</p>
 
-<p align="center"><a href="https://302.ai/tools/videosum/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
+<p align="center"><a href="https://302.ai/tools/videosum/" target="blank"><img src="https://file.302.ai/gpt/imgs/github/20250102/72a57c4263944b73bf521830878ae39a.png" /></a></p >
 
 <p align="center"><a href="README_zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
-![界面预览](docs/音视频总结新1.png)     
+![](docs/302_AI_Video_Summarization_cn.png)     
 
 来自[302.AI](https://302.ai)的[AI音视频总结](https://302.ai/tools/videosum/)的开源版本。你可以直接登录302.AI，零代码零配置使用在线版本。或者对本项目根据自己的需求进行修改，传入302.AI的API KEY，自行部署。
 
 
 ## 界面预览
-根据上传的音视频链接或文件，生成简短总结，其中包括摘要和思维导图。
-![界面预览](docs/音视频总结1.png)     
+根据上传的音视频链接或文件，生成简短总结和思维导图。
+![界面预览](docs/302_AI_Video_Summarization_screenshot_01.png)     
 
-生成详细总结，其中包括大纲和思维导图。
-![界面预览](docs/音视频总结2.png)     
+可对字幕进行翻译，生成详细总结和思维导图。
+![界面预览](docs/302_AI_Video_Summarization_screenshot_02.png)     
 
-可与AI进行问答，了解更多与音视频有关的信息。
-![界面预览](docs/音视频总结3.png)
+文章生成功能，提供多种模板选择，还可以自定义模板。
+![界面预览](docs/302_AI_Video_Summarization_screenshot_03.png)
+
+通过选择对话上下文，与AI进行问答，了解更多与音视频有关的信息。
+![界面预览](docs/302_AI_Video_Summarization_screenshot_04.png)   
 
 ## 项目特性
 ### 🎥 自动生成视频总结
@@ -34,6 +37,8 @@
   提供简短总结服务，快速提取视频要点。
 ### 📚 详细总结
   提供详细总结服务，深度解析视频内容。
+### ✒️ 文章生成
+  提供多种模板选择，也可以自定义模板，生成你想要的文章格式。
 ### 🤖 AI问答
   与AI进行互动，智能回答视频相关问题。
 ### 🌙 暗色模式
