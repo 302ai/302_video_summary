@@ -2,25 +2,29 @@
 
 <p align="center">AI audio and video summarization supports summarizing the subtitle content of audio and video from YouTube, Bilibili, Douyin, Xiaohongshu as well as links to mp3 and mp4 files on the Internet, and generating mind maps. It can also translate the subtitles, download them in SRT or TXT format, and use the video content as context to have conversations with AI large models, enabling users to quickly understand the video content.</p>
 
-<p align="center"><a href="https://302.ai/en/tools/videosum/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
+<p align="center"><a href="https://302.ai/en/tools/videosum/" target="blank"><img src="https://file.302.ai/gpt/imgs/github/20250102/72a57c4263944b73bf521830878ae39a.png" /></a></p >
 
 <p align="center"><a href="README_zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
-![Interface Preview](docs/音视频总结新2.png) 
+![](docs/302_AI_Video_Summarization_en.png) 
 
 Open-source version of the [AI Audio and Video Summary](https://302.ai/en/tools/videosum/) from [302.AI](https://302.ai).
 You can directly log in to 302.AI for a zero-code, zero-configuration online experience.
 Alternatively, customize this project to suit your needs, integrate 302.AI's API KEY, and deploy it yourself.
 
 ## UI Preview
-Based on the uploaded audio and video links or files, generate brief summaries, which include abstracts and mind maps.
-![Interface Preview](docs/视频摘要英1.png)     
+Generate a brief summary and mind map based on the uploaded audio/video link or file.
+![](docs/302_AI_Video_Summarization_en_screenshot_01.png)     
 
-Generate detailed summaries, which include outlines and mind maps.
-![Interface Preview](docs/视频摘要英2.png)     
+It can translate the subtitles and generate a detailed summary and mind map.
+![](docs/302_AI_Video_Summarization_en_screenshot_02.png)     
 
-You can conduct question-and-answer sessions with AI to learn more information related to the audio and video.
-![Interface Preview](docs/视频摘要英3.png)
+Article generation function, providing a variety of template options, and you can also customize templates.
+![](docs/302_AI_Video_Summarization_en_screenshot_03.jpg)
+
+By selecting the conversation context, you can ask and answer questions with AI to learn more information related to audio and video.
+![](docs/302_AI_Video_Summarization_en_screenshot_04.png)  
+
 
 ## Project Features
 ### 🎥 Automatic Video Summary Generation
@@ -35,6 +39,8 @@ Various subtitle formats can be downloaded: VTT, SRT and TXT formats are support
 It provides a brief summary service to quickly extract the key points of videos.
 ### 📚 Detailed Summary
 It provides a detailed summary service to deeply analyze the content of videos.
+### ✒️ Article Generation
+Offer a variety of template options. You can also customize templates to generate the article format you want.
 ### 🤖 AI Q&A 
 iInteract with AI, which will intelligently answer questions related to videos.
 ### 🌙 Dark Mode
