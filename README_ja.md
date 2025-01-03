@@ -2,25 +2,29 @@
 
 <p align="center">AI 音声・ビデオ要約機能は、YouTube、ビリビリ、抖音、小红书、およびインターネット上の mp3、mp4 ファイルのリンクにある音声・ビデオの字幕内容を要約し、マインドマップを生成することができます。また、字幕を翻訳し、SRT 形式または TXT 形式でダウンロードすることもでき、ビデオ内容をコンテキストとして AI の大規模モデルと会話を行い、ビデオ内容を迅速に理解することができます。</p>
 
-<p align="center"><a href="https://302.ai/ja/tools/videosum/" target="blank"><img src="https://file.302ai.cn/gpt/imgs/github/302_badge.png" /></a></p >
+<p align="center"><a href="https://302.ai/ja/tools/videosum/" target="blank"><img src="https://file.302.ai/gpt/imgs/github/20250102/72a57c4263944b73bf521830878ae39a.png" /></a></p >
 
 <p align="center"><a href="README_zh.md">中文</a> | <a href="README.md">English</a> | <a href="README_ja.md">日本語</a></p>
 
-![界面预览](docs/音视频总结新3.png)    
+![](docs/302_AI_Video_Summarization_jp.png) 
 
 [302.AI](https://302.ai)の[AI音声動画サマリー](https://302.ai/ja/tools/videosum/)のオープンソース版です。
 302.AIに直接ログインすることで、コード不要、設定不要のオンライン体験が可能です。
 あるいは、このプロジェクトをニーズに合わせてカスタマイズし、302.AIのAPI KEYを統合して、自身でデプロイすることもできます。
 
 ## インターフェースプレビュー
-アップロードされた音声・ビデオのリンクまたはファイルに基づいて、要約とマインドマップを含む簡潔な要約を生成します。
-![界面预览](docs/视频摘要日1.png)    
+アップロードされた音声/ビデオのリンクまたはファイルに基づいて、簡単な要約とマインドマップを作成します。 
+![](docs/302_AI_Video_Summarization_jp_screenshot_01.png)     
 
-大綱とマインドマップを含む詳細な要約を生成します。
-![界面预览](docs/视频摘要日2.png)     
+字幕の翻訳が可能で、詳細な要約とマインドマップを生成することができます。
+![](docs/302_AI_Video_Summarization_jp_screenshot_02.png)     
 
-AI との質疑応答を行い、音声・ビデオに関するさらなる情報を知ることができます。
-![界面预览](docs/视频摘要日3.png)
+文章生成機能で、さまざまなテンプレートオプションを提供し、テンプレートをカスタマイズすることもできます。 
+![](docs/302_AI_Video_Summarization_jp_screenshot_03.jpg)
+
+会話のコンテキストを選択することで、AIと質問と回答を行い、音声やビデオに関連する詳細情報を学ぶことができます 。
+![](docs/302_AI_Video_Summarization_jp_screenshot_04.png)  
+
 
 ## プロジェクトの特徴
 ### 🎥 自動的なビデオ要約生成
@@ -35,6 +39,8 @@ YouTube、TikTok、ビリビリ、抖音、MP4 など、複数のプラットフ
 簡潔な要約サービスを提供し、ビデオの要点を迅速に抽出します。
 ### 📚 詳細な要約
 詳細な要約サービスを提供し、ビデオの内容を深く解析します。
+### ✒️ 文章生成
+さまざまなテンプレートオプションを提供します。独自のテンプレートも作成でき、あなたが望む文章形式を生成できます。
 ### 🤖 AI の質疑応答
 AI と相互作用し、ビデオに関連する質問に知的に答えます。
 ### 🌙 ダークモード
