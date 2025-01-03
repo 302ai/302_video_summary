@@ -8,7 +8,7 @@
 
 ![](docs/302_AI_Video_Summarization_jp.png) 
 
-[302.AI](https://302.ai)の[AI音声動画サマリー](https://302.ai/ja/tools/videosum/)のオープンソース版です。
+[302.AI](https://302.ai/ja/)の[AI音声動画サマリー](https://302.ai/ja/tools/videosum/)のオープンソース版です。
 302.AIに直接ログインすることで、コード不要、設定不要のオンライン体験が可能です。
 あるいは、このプロジェクトをニーズに合わせてカスタマイズし、302.AIのAPI KEYを統合して、自身でデプロイすることもできます。
 
