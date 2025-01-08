@@ -1,14 +1,16 @@
 import { continueConversation } from '@/app/actions/summary'
 import { useClientTranslation } from '@/app/hooks/use-client-translation'
+import { useUserStore } from '@/app/stores/use-user-store'
 import { useVideoInfoStore } from '@/app/stores/use-video-info-store'
 import { save } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { readStreamableValue } from 'ai/rsc'
-import { env } from 'next-runtime-env'
 import { isFunction } from 'radash'
 import { createContext, useCallback, useMemo, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatContextType, Message } from './types'
+import { ArticleType } from '@/lib/ai/constants'
+import { env } from 'next-runtime-env'
 // Context
 export const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
@@ -16,13 +18,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { t } = useClientTranslation()
-  const apiKey = env('NEXT_PUBLIC_API_KEY')
-  const modelName = env('NEXT_PUBLIC_MODEL_NAME')
-  const { title, detailedSummary, chatMessages, updateVideoInfo } =
+  const apiKey = env("NEXT_PUBLIC_API_KEY")
+  const modelName = env("NEXT_PUBLIC_MODEL_NAME")
+  const { title, detailedSummary, chatMessages, backgroundType, articles, updateVideoInfo } =
     useVideoInfoStore((state) => ({
       title: state.title,
       detailedSummary: state.detail,
       chatMessages: state.chatMessages,
+      backgroundType: state.backgroundType,
+      articles: state.articles,
       updateVideoInfo: state.updateAll,
     }))
   const initialMessages = useMemo<Message[]>(() => {
@@ -53,15 +57,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   )
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const videoInfo = useMemo<string>(
-    () =>
-      `
-<VideoInfo>
-<Title>${title}</Title>
-<DetailedSummary>${detailedSummary}</DetailedSummary>
-</VideoInfo>`,
-    [detailedSummary, title]
-  )
+  const videoInfo = useMemo<string | undefined>(() => {
+    if (backgroundType === 'detailSummary') {
+      return `
+<视频信息>
+<标题>${title}</标题>
+<详细总结>${detailedSummary}</详细总结>
+</视频信息>
+`
+    } else if (backgroundType && articles[backgroundType as ArticleType]) {
+      return `
+<视频信息>
+<标题>${title}</标题>
+<视频文章>${articles[backgroundType as ArticleType]?.mergedContent}</视频文章>
+</视频信息>
+`
+    }
+  }, [detailedSummary, title, backgroundType, articles])
 
   const addMessage = useCallback(
     (message: Omit<Message, 'id' | 'timestamp'>) => {
@@ -94,7 +106,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
               timestamp: new Date().toISOString(),
             },
           ],
-          videoInfo,
+          videoInfo ?? '',
           apiKey ?? '',
           modelName ?? ''
         )

@@ -11,7 +11,8 @@ import {
 } from 'lucide-react'
 import { Transformer } from 'markmap-lib'
 import { Markmap } from 'markmap-view'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { throttle } from 'radash'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useClientTranslation } from '../hooks/use-client-translation'
 import { useVideoInfoStore } from '../stores/use-video-info-store'
 
@@ -28,8 +29,8 @@ export default function MarkmapRenderer({
   content,
   className = '',
   contentClassName = '',
-  height = 200,
-  width = 200,
+  height = 400,
+  width = 600,
 }: MarkmapRendererProps) {
   const { t } = useClientTranslation()
   const { title } = useVideoInfoStore((state) => ({ title: state.title }))
@@ -37,6 +38,41 @@ export default function MarkmapRenderer({
   const fullscreenRef = useRef<HTMLDivElement>(null)
   const refSvg = useRef<SVGSVGElement | null>(null)
   const refMm = useRef<Markmap>()
+  const [throttledContent, setThrottledContent] = useState(content)
+  const pendingContentRef = useRef(content)
+  const fitInProgressRef = useRef(false)
+  const [containerReady, setContainerReady] = useState(false)
+
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const updateThrottledContent = useMemo(() =>
+    throttle({ interval: 200 }, () => {
+      setThrottledContent(pendingContentRef.current)
+    }),
+    []
+  )
+
+  // Always update pendingContent immediately, but throttle the state update
+  useEffect(() => {
+    pendingContentRef.current = content
+    updateThrottledContent()
+  }, [content, updateThrottledContent])
+
+  // Ensure final content is always displayed
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (pendingContentRef.current !== throttledContent) {
+        setThrottledContent(pendingContentRef.current)
+      }
+    }, 200)
+    return () => clearTimeout(timeoutId)
+  }, [throttledContent])
 
   const handleDownload = useCallback(
     async (format: 'png' | 'jpeg' | 'svg') => {
@@ -135,61 +171,169 @@ export default function MarkmapRenderer({
     [handleDownload]
   )
 
-  const rebuild = useCallback(() => {
-    if (refMm.current) {
-      refMm.current.destroy()
-      refMm.current = undefined
+  const rebuild = useCallback((forceRebuild = false) => {
+    if (!refSvg.current) return
+
+    const svg = refSvg.current
+    const rect = svg.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0 || isNaN(rect.width) || isNaN(rect.height)) return
+
+    try {
+      if (!refMm.current || forceRebuild) {
+        if (refMm.current) {
+          refMm.current.destroy()
+          refMm.current = undefined
+        }
+        const mm = Markmap.create(svg)
+        refMm.current = mm
+        const { root } = transformer.transform(throttledContent)
+        mm.setData(root)
+        fitInProgressRef.current = true
+        mm.fit()
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            fitInProgressRef.current = false
+          }
+        }, 200)
+      }
+    } catch (error) {
+      console.warn('Failed to rebuild markmap:', error)
+      if (isMountedRef.current) {
+        fitInProgressRef.current = false
+      }
     }
-    const mm = Markmap.create(refSvg.current!)
-    refMm.current = mm
-    const { root } = transformer.transform(content)
-    mm.setData(root)
-    mm.fit()
-  }, [refSvg.current, content])
+  }, [throttledContent])
 
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((isFullscreen) => !isFullscreen)
-    rebuild()
-  }, [rebuild])
+  const toggleFullscreen = useCallback(async () => {
+    if (!fullscreenRef.current) return
 
-  useEffect(() => {
-    if (refMm.current) return
-    const mm = Markmap.create(refSvg.current!)
-    refMm.current = mm
-  }, [refSvg.current])
+    try {
+      if (!document.fullscreenElement) {
+        await fullscreenRef.current.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch (err) {
+      console.error('Error attempting to toggle fullscreen:', err)
+    }
+  }, [])
 
   useEffect(() => {
-    const mm = refMm.current
-    if (!mm) return
-    const { root } = transformer.transform(content)
-    mm.setData(root)
-    mm.fit()
-  }, [refMm.current, content, height, width])
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!refSvg.current || !containerReady) return
+
+    const initializeMarkmap = () => {
+      const rect = refSvg.current?.getBoundingClientRect()
+      if (!rect || rect.width === 0 || rect.height === 0 || isNaN(rect.width) || isNaN(rect.height)) {
+        // If dimensions are invalid, retry after a short delay
+        requestAnimationFrame(initializeMarkmap)
+        return
+      }
+
+      try {
+        if (!refMm.current) {
+          rebuild(true)
+        } else {
+          const { root } = transformer.transform(throttledContent)
+          refMm.current.setData(root)
+
+          // Ensure dimensions are still valid before fitting
+          const svgRect = refSvg.current?.getBoundingClientRect()
+          if (svgRect && svgRect.width > 0 && svgRect.height > 0 && !isNaN(svgRect.width) && !isNaN(svgRect.height)) {
+            refMm.current.fit()
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to update markmap:', error)
+        rebuild(true)
+      }
+    }
+
+    initializeMarkmap()
+  }, [throttledContent, rebuild, containerReady])
 
   const contentRef = useRef<HTMLDivElement>(null)
   const [paddingWidth, setPaddingWidth] = useState(0)
   const [paddingHeight, setPaddingHeight] = useState(0)
 
   useEffect(() => {
-    if (!contentRef.current) return
-    const contentStyles = window.getComputedStyle(contentRef.current)
-    const contentWidth =
-      parseFloat(contentStyles.paddingLeft) +
-      parseFloat(contentStyles.paddingRight)
-    const contentHeight =
-      parseFloat(contentStyles.paddingTop) +
-      parseFloat(contentStyles.paddingBottom)
+    const initializeContainer = () => {
+      if (!contentRef.current) {
+        requestAnimationFrame(initializeContainer)
+        return
+      }
 
-    setPaddingWidth(contentWidth)
-    setPaddingHeight(contentHeight)
-  }, [contentRef.current])
+      const contentStyles = window.getComputedStyle(contentRef.current)
+      const contentWidth =
+        parseFloat(contentStyles.paddingLeft) +
+        parseFloat(contentStyles.paddingRight)
+      const contentHeight =
+        parseFloat(contentStyles.paddingTop) +
+        parseFloat(contentStyles.paddingBottom)
+
+      if (contentWidth > 0 && contentHeight > 0) {
+        setPaddingWidth(contentWidth)
+        setPaddingHeight(contentHeight)
+        setContainerReady(true)
+      } else {
+        requestAnimationFrame(initializeContainer)
+      }
+    }
+
+    initializeContainer()
+  }, [])
+
+  useEffect(() => {
+    if (!refSvg.current) return
+    const svg = refSvg.current
+
+    let resizeTimeout: NodeJS.Timeout
+    const handleResize = () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout)
+      }
+
+      resizeTimeout = setTimeout(() => {
+        if (refMm.current && !fitInProgressRef.current) {
+          const rect = svg.getBoundingClientRect()
+          if (rect.width > 0 && rect.height > 0 && !isNaN(rect.width) && !isNaN(rect.height)) {
+            refMm.current.fit()
+          }
+        }
+      }, 150)
+    }
+
+    const resizeObserver = new ResizeObserver(handleResize)
+    resizeObserver.observe(svg)
+
+    return () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout)
+      }
+      resizeObserver.disconnect()
+      if (refMm.current) {
+        refMm.current.destroy()
+        refMm.current = undefined
+      }
+    }
+  }, [])
 
   return (
     <Card
-      className={`relative h-full w-full overflow-hidden shadow-none ${className}`}
+      className={`group relative h-full w-full overflow-hidden shadow-none ${className}`}
     >
       <div
-        className={`absolute right-2 top-1 flex items-center space-x-2 overflow-hidden rounded-md border border-border bg-background p-1 text-sm transition-opacity duration-300`}
+        className={`absolute right-2 top-1 z-10 flex items-center space-x-2 overflow-hidden rounded-md border border-border bg-background/80 p-1 text-sm backdrop-blur-sm transition-opacity duration-300 md:opacity-0 md:group-hover:opacity-100`}
       >
         <Button
           variant='ghost'
@@ -266,10 +410,10 @@ export default function MarkmapRenderer({
             style={{
               width: isFullscreen
                 ? 'calc(100vw - 2rem)'
-                : width - paddingWidth - 4,
+                : `${Math.max(width - paddingWidth - 4, 300)}px`,
               height: isFullscreen
                 ? 'calc(100vh - 2rem)'
-                : height - paddingHeight - 4,
+                : `${Math.max(height - paddingHeight - 4, 200)}px`,
             }}
           />
         </div>

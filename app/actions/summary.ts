@@ -37,7 +37,7 @@ export async function generateBriefSummary(
           system: fillPrompt(BRIEF_SUMMARY_SYSTEM_PROMPT, {
             targetLanguage: language,
           }),
-          prompt: `Video title: ${title}\nVideo subtitle:\n${subtitle}`,
+          prompt: `视频标题：${title}\n视频字幕：\n${subtitle}`,
         })
         for await (const delta of textStream) {
           stream.update(delta)
@@ -161,7 +161,7 @@ export async function continueConversation(
     try {
       const { textStream } = await streamText({
         model: openai(model),
-        system: `You are a 302AI assistant. Your task is to answer the user's questions based on the content in ${videoInfo}. If you don't know how to answer, you can say "I don't know".`,
+        system: `你是302AI助手，你的任务是，根据${videoInfo}中的内容回答用户的问题。如果你不知道如何回答，可以说"我不知道"。`,
         messages: history.map((message) => ({
           role: message.sender === 'user' ? 'user' : 'assistant',
           content: message.content,

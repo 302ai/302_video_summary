@@ -7,9 +7,11 @@
   },
   "chatbox": {
     "error_getting_response": "Our AI seems to have encountered a problem, please try again!",
+    "error_no_background": "Please first select a context that AI can access",
     "error_prefix": "Error:",
     "loading_indicator": "AI is thinking...",
     "message_input_placeholder": "Please enter your question.",
+    "select_context": "Select conversation context",
     "welcome_message": "Hello, I am 302AI assistant, you can ask me any questions."
   },
   "error_page": {
@@ -24,9 +26,11 @@
     "collapse": "Collapse",
     "download_as_markdown": "Download Markdown",
     "download_as_text": "Download TXT",
+    "edit": "Edit",
     "enter_fullscreen": "Enter full screen",
     "exit_fullscreen": "Exit full screen",
     "expand": "Expand",
+    "preview": "Preview",
     "regenerate": "Regenerate"
   },
   "mind_map": {

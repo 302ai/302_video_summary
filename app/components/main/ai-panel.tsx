@@ -16,13 +16,14 @@ export default function AIPanel({ className, setActiveTab }: { className?: strin
   const { messages, isLoading, error, sendMessage, clearMessages } = useChat()
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
-  const { detailSummary } = useVideoInfoStore((state) => ({
+  const { detailSummary, articles } = useVideoInfoStore((state) => ({
     detailSummary: state.detail,
+    articles: state.articles,
   }))
 
-  const hasDetailSummary = useMemo(() => {
-    return detailSummary && detailSummary.length > 0
-  }, [detailSummary])
+  const hasDetailSummaryOrArticles = useMemo(() => {
+    return detailSummary && detailSummary.length > 0 || articles && Object.values(articles).length > 0
+  }, [detailSummary, articles])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -48,7 +49,7 @@ export default function AIPanel({ className, setActiveTab }: { className?: strin
         className
       )}
     >
-     {hasDetailSummary ? (
+     {hasDetailSummaryOrArticles ? (
       <>
        <ScrollArea className='flex-grow space-y-4 p-4'>
         <div ref={scrollRef}>

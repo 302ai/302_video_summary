@@ -7,9 +7,11 @@
   },
   "chatbox": {
     "error_getting_response": "AIが問題を抱えているようです。再試行してください！",
+    "error_no_background": "まず AI がアクセスできるコンテキストを選択してください",
     "error_prefix": "エラー：",
     "loading_indicator": "AIが思考中です...",
     "message_input_placeholder": "質問を入力してください",
+    "select_context": "会話コンテキストの選択",
     "welcome_message": "こんにちは、私は302AIアシスタントです。何でも質問してください。"
   },
   "error_page": {
@@ -24,9 +26,11 @@
     "collapse": "閉じる",
     "download_as_markdown": "Markdownをダウンロード",
     "download_as_text": "TXTをダウンロード",
+    "edit": "編集",
     "enter_fullscreen": "全画面表示",
     "exit_fullscreen": "全画面終了",
     "expand": "展開",
+    "preview": "プレビュー",
     "regenerate": "再生成"
   },
   "mind_map": {

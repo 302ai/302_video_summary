@@ -1,8 +1,8 @@
-import { Subtitle } from '@/app/stores/use-video-info-store'
 import { UseTranslationReturnType } from '@/types'
 import { translateSubtitles } from '../ai/deepl-translation'
 import { logger } from '../logger'
 import { apiKy } from './api'
+import { Subtitle } from '@/app/hooks/use-current-subtitles'
 
 export interface TranscriptResult {
   detail: Detail

@@ -1,8 +1,10 @@
 import { getRealUrlForVideo } from '@/app/actions/video'
 import { useClientTranslation } from '@/app/hooks/use-client-translation'
 import { useIsSharePath } from '@/app/hooks/use-is-share-path'
-import { Subtitle, useVideoInfoStore } from '@/app/stores/use-video-info-store'
+import { useUserStore } from '@/app/stores/use-user-store'
+import {  useVideoInfoStore } from '@/app/stores/use-video-info-store'
 import { logger } from '@/lib/logger'
+import { cn } from '@/lib/utils'
 import { isVideoUrlUsable } from '@/lib/video'
 import {
   MediaPlayer,
@@ -11,40 +13,47 @@ import {
   Poster,
   Track,
   useMediaRemote,
+  VideoMimeType,
 } from '@vidstack/react'
 import type { DefaultLayoutTranslations } from '@vidstack/react/player/layouts/default'
 import {
   DefaultAudioLayout,
-  DefaultVideoLayout,
   defaultLayoutIcons,
+  DefaultVideoLayout,
 } from '@vidstack/react/player/layouts/default'
 import '@vidstack/react/player/styles/default/layouts/video.css'
 import '@vidstack/react/player/styles/default/theme.css'
-import { useTrackedEffect } from 'ahooks'
 import ISO6391 from 'iso-639-1'
 import { env } from 'next-runtime-env'
 import {
   type ForwardedRef,
   forwardRef,
-  memo,
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react'
 import toast from 'react-hot-toast'
 
 interface PlayerProps {
-  title: string
-  src: string
   id?: string
-  type?: string
-  translatedSubtitles: Record<string, Subtitle[]>
   language?: string
-  poster?: string
+  aspectRatio?: string
+  className?: string
+  onTimeUpdate?: (time: number) => void
+  onWaiting?: () => void
+  onPlaying?: () => void
+  onCanPlay?: () => void
+  onError?: () => void
 }
 
 const Player = forwardRef(function Player(
-  { title, id, src, type, translatedSubtitles, language, poster }: PlayerProps,
+  {
+    aspectRatio = '16/9',
+    className,
+    onTimeUpdate,
+    onError,
+  }: PlayerProps,
   ref: ForwardedRef<MediaPlayerInstance>
 ) {
   const { t } = useClientTranslation()
@@ -119,8 +128,32 @@ const Player = forwardRef(function Player(
     Volume: t('extras:player.volume'),
   }
 
+  const {
+    id,
+    title,
+    poster,
+    realVideoUrl,
+    videoId,
+    videoType,
+    language: currentLanguage,
+    originalSubtitles,
+    translatedSubtitles,
+    updateVideoInfo,
+    originalVideoUrl,
+  } = useVideoInfoStore((state) => ({
+    id: state.id,
+    title: state.title,
+    poster: state.poster,
+    realVideoUrl: state.realVideoUrl,
+    videoId: state.id,
+    videoType: state.videoType,
+    language: state.language,
+    originalSubtitles: state.originalSubtitles,
+    translatedSubtitles: state.translatedSubtitles,
+    updateVideoInfo: state.updateAll,
+    originalVideoUrl: state.originalVideoUrl,
+  }))
   const allSubtitles = useMemo(() => {
-    logger.info('translatedSubtitles changes')
     return Object.entries(translatedSubtitles).map(([language, subtitles]) => ({
       language,
       cues: subtitles?.map((item) => ({
@@ -130,23 +163,6 @@ const Player = forwardRef(function Player(
       })),
     }))
   }, [translatedSubtitles])
-
-  const {
-    videoId,
-    videoType,
-    language: currentLanguage,
-    originalSubtitles,
-    updateVideoInfo,
-    originalVideoUrl,
-  } = useVideoInfoStore((state) => ({
-    videoId: state.id,
-    videoType: state.videoType,
-    language: state.language,
-    originalSubtitles: state.originalSubtitles,
-    updateVideoInfo: state.updateAll,
-    originalVideoUrl: state.originalVideoUrl,
-  }))
-
   const originalSubtitlesCues = useMemo(() => {
     return originalSubtitles?.map((item) => ({
       startTime: item.startTime,
@@ -157,18 +173,15 @@ const Player = forwardRef(function Player(
 
   const remote = useMediaRemote(playerRef.current)
 
-  useTrackedEffect(
-    (changes) => {
-      for (let i = 0; i < allSubtitles.length; i++) {
-        if (allSubtitles[i].language === currentLanguage) {
-          remote.changeTextTrackMode(i, 'showing')
-        } else {
-          remote.changeTextTrackMode(i, 'disabled')
-        }
+  useEffect(() => {
+    for (let i = 0; i < allSubtitles.length; i++) {
+      if (allSubtitles[i].language === currentLanguage) {
+        remote.changeTextTrackMode(i, 'showing')
+      } else {
+        remote.changeTextTrackMode(i, 'disabled')
       }
-    },
-    [allSubtitles, currentLanguage, remote]
-  )
+    }
+  }, [allSubtitles, currentLanguage, remote])
 
   useEffect(() => {
     if (allSubtitles.length === 0) {
@@ -177,9 +190,8 @@ const Player = forwardRef(function Player(
   }, [allSubtitles, remote])
 
   const realVideoType = useMemo(() => {
-    console.log('========', src)
-    return src.includes('youtube.com') ? 'video/youtube' : 'video/mp4'
-  }, [src])
+    return videoType?.startsWith('audio') ? videoType : videoType === 'youtube' ? 'video/youtube' : 'video/mp4'
+  }, [videoType])
 
   const { isSharePage } = useIsSharePath()
 
@@ -187,53 +199,78 @@ const Player = forwardRef(function Player(
     if (isSharePage) {
       return
     }
-    let videoUrl = src
-    if (videoUrl.includes('youtube.com')) {
-      return
-    }
+
+    let videoUrl = realVideoUrl
     if (!videoUrl) {
       videoUrl = originalVideoUrl!
     }
+
+    // Skip URL check for YouTube videos
+    if (videoUrl.includes('youtube.com')) {
+      return
+    }
+
     if (videoUrl) {
       isVideoUrlUsable(videoUrl).then((res: boolean) => {
-        logger.info('isVideoUrlUsable', res)
         if (!res) {
           const retryGetRealUrl = async (retries = 3) => {
             for (let i = 0; i < retries; i++) {
-              const url = await getRealUrlForVideo(
-                videoType as string,
-                videoId as string,
-                env('NEXT_PUBLIC_API_KEY')!
-              )
-              logger.info(`尝试 ${i + 1}: realVideoUrl`, url)
-              if (url) {
-                updateVideoInfo({ realVideoUrl: url })
-                return
+              try {
+                // For Douyin videos, pass originalVideoUrl instead of videoId
+                const idOrUrl =
+                  videoType === 'douyin' || videoType === 'tiktok'
+                    ? originalVideoUrl
+                    : videoId
+                const url = await getRealUrlForVideo(
+                  videoType as string,
+                  idOrUrl as string,
+                  env('NEXT_PUBLIC_API_KEY') || ''
+                )
+                logger.info(`Retry ${i + 1}: realVideoUrl`, url)
+
+                // For non-YouTube videos, verify the URL is usable
+                if (url && !url.includes('youtube.com')) {
+                  const isUsable = await isVideoUrlUsable(url)
+                  if (isUsable) {
+                    updateVideoInfo({ realVideoUrl: url })
+                    return
+                  }
+                }
+
+                // Wait before next retry
+                if (i < retries - 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 1000))
+                }
+              } catch (error) {
+                logger.error(`Retry ${i + 1} failed:`, error)
+                if (i === retries - 1) {
+                  toast.error(t('home:submit.get_real_url_failed'))
+                }
               }
-              // 如果不是最后一次尝试,等待一秒后重试
-              if (i < retries - 1)
-                await new Promise((resolve) => setTimeout(resolve, 1000))
             }
-            logger.error('获取真实视频地址失败')
-            toast.error(t('home:submit.get_real_url_failed'))
           }
           retryGetRealUrl()
         }
       })
     }
-  }, [src, videoType, videoId, updateVideoInfo, originalVideoUrl, t, isSharePage])
+  }, [videoType, videoId, updateVideoInfo, originalVideoUrl, t, isSharePage, realVideoUrl])
+
   return (
     <MediaPlayer
       ref={playerRef}
       title={title}
-      src={{ src: src, type: realVideoType }}
-      viewType='video'
-      streamType='on-demand'
+      src={{ src: realVideoUrl || '', type: realVideoType as VideoMimeType }}
+      preload="auto"
+      load="eager"
       logLevel='warn'
       crossOrigin
-      className='h-full w-full'
+      className={cn('h-full w-full', className)}
       onError={(error) => {
         logger.error('Player error: %o', error)
+        onError?.()
+      }}
+      onTimeUpdate={({ currentTime }) => {
+        onTimeUpdate?.(currentTime)
       }}
     >
       <MediaProvider>
@@ -280,4 +317,4 @@ const Player = forwardRef(function Player(
   )
 })
 
-export const VideoPlayer = memo(Player)
+export const VideoPlayer = Player

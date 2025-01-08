@@ -1,4 +1,4 @@
-import { Subtitle } from '@/app/stores/use-video-info-store'
+import { Subtitle } from '@/app/hooks/use-current-subtitles'
 import { createOpenAI } from '@ai-sdk/openai'
 import { generateText } from 'ai'
 import { logger } from '../logger'
@@ -74,7 +74,7 @@ export const subtitleTranslationService = {
           }
         }
       }
-      throw new Error('Translation error: Maximum retry attempts reached')
+      throw new Error('Translation error: Maximum retries reached')
     }
 
     try {
@@ -85,7 +85,7 @@ export const subtitleTranslationService = {
       const sortedResults = results.flat().sort((a, b) => a.index - b.index)
       return { translatedSubtitles: sortedResults, success: true }
     } catch (error) {
-      logger.error('An error occurred during translation: %o', error)
+      logger.error('Error during translation process: %o', error)
       throw error
     }
   },
@@ -140,7 +140,7 @@ export const subtitleTranslationService = {
 
     const lines = extractedContent!.split('\n')
     if (lines.length < batchContent.split('\n').length) {
-      throw new Error('Translation result has fewer lines than input')
+      throw new Error('Number of translated lines is less than input lines')
     }
     if (!lines[0].match(/^\d/)) {
       lines.shift()

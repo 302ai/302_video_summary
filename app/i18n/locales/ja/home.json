@@ -16,13 +16,57 @@
   },
   "main": {
     "ai": {
-      "action_description": "AIの質問にはまず詳細なサマリーが必要です。下のボタンをクリックして移動してください",
+      "action_description": "AI Q&A を詳細に要約するか、何らかの種類の記事を生成する必要があります。まず、下のボタンをクリックしてください。",
       "action_text": "簡潔なサマリーを生成するにはクリック",
       "action_title": "使用できません",
       "clear_chat": "チャット履歴をクリア",
       "no_ai_content": "動画リンクを入力してからAI質問を行ってください"
     },
     "ai_question": "AI質問",
+    "article": {
+      "action_description": "クリックして記事を生成",
+      "action_text": "記事を生成",
+      "action_title": "記事生成",
+      "article_title": "生成された記事",
+      "clear": "消去",
+      "custom_prompt": "カスタムのプロンプト単語",
+      "custom_prompt_placeholder": "生成したい記事の要件を説明します",
+      "empty_description": "再スタートするか、別の動画を試してください",
+      "empty_title": "動画情報が不完全です",
+      "final_content": "最終的に生成されたコンテンツ",
+      "generate": "生成",
+      "generate_error": "記事の生成に失敗しました。しばらくしてから再試行してください",
+      "generate_success": "記事の生成に成功しました",
+      "generating": "記事を生成中",
+      "generating_image": "Little Red Book の表紙画像を生成する",
+      "generating_status": "(生成中...)",
+      "loading": "思考中",
+      "loading_description": "現在のページから離れないでください！記事を生成中です、お待ちください",
+      "merging": "最終記事の生成中",
+      "merging_status": "(合流中…)",
+      "no_article_content": "まずは記事を作成してください",
+      "no_subtitles": "字幕がありません",
+      "part_label": "セクション {{number}} ({{timeRange}})",
+      "regenerate": "再生成",
+      "select_type": "記事タイプを選択",
+      "stop": "停止",
+      "types": {
+        "brief": "ブリーフ",
+        "custom": "カスタマイズ",
+        "detailSummary": "詳細な概要",
+        "list": "リスト記事",
+        "podcast": "ポッドキャストスクリプト",
+        "press": "プレスリリース",
+        "quotes": "引用集",
+        "regular": "通常記事",
+        "summary": "要約",
+        "timeline": "タイムライン",
+        "tutorial": "チュートリアル",
+        "xhs": "小紅書人気ノート"
+      }
+    },
+    "article_generation": "記事生成",
+    "auto_scroll": "字幕のスクロールに従ってください",
     "brief": {
       "action_description": "簡潔なサマリーを生成するにはクリック",
       "action_text": "要約を生成する",
@@ -48,27 +92,33 @@
       "error_generate_detail": "詳細なサマリー生成に失敗しました。しばらくしてから再試行してください",
       "loading": "思考中",
       "loading_description": "ページを離れないでください！詳細なサマリーを生成中ですので、しばらくお待ちください",
+      "loading_description_p1": "ステップ 1/3：字幕を物語形式に変換中...",
+      "loading_description_p2": "ステップ 2/3：コンテンツの概要を生成中...",
+      "loading_description_p3": "ステップ 3/3：詳細なサマリーを作成中...",
       "mind_map": "マインドマップ",
       "success_generate_detail": "詳細なサマリー生成に成功しました"
-
     },
     "detailed": {
-     "no_detailed_content": "動画リンクを入力してから詳細なサマリーを表示してください"
+      "no_detailed_content": "動画リンクを入力してから詳細なサマリーを表示してください"
     },
     "detailed_summary": "詳細なサマリー",
     "subtitles": {
-      "original": "原則的な字幕",
       "download_subtitle": "字幕をダウンロード",
       "no_subtitles_content": "まずビデオリンクを入力してから、字幕を確認してください。",
+      "original": "原則的な字幕",
       "reTranslate_subtitle": "再翻訳",
       "search_placeholder": "字幕検索",
       "select_language_error": "まず言語を選択してください",
       "select_placeholder": "字幕フォーマット",
+      "srt_format": "SRTフォーマット",
+      "subtitle_format": "字幕形式を選択してください",
       "translate_subtitle": "字幕翻訳",
       "translate_subtitle_error": "翻訳に失敗しました。しばらくしてから再試行してください",
       "translate_subtitle_placeholder": "字幕言語を選択",
       "translate_subtitle_success": "翻訳成功、字幕が更新されました",
-      "translating": "翻訳中"
+      "translating": "翻訳中",
+      "txt_format": "プレーンテキスト形式",
+      "vtt_format": "VTT形式"
     },
     "video": {
       "no_video_content": "動画リンクを入力してから動画を表示してください"
@@ -77,8 +127,8 @@
     "view_video": "動画を表示"
   },
   "submit": {
-    "invalid_youtube_url": "無効なYouTubeリンク、ビデオIDを取得できません",
     "get_real_url_failed": "動画URLを取得できません",
+    "invalid_youtube_url": "無効なYouTubeリンク、ビデオIDを取得できません",
     "save_failed": "データを保存できません。ブラウザ環境を確認してください",
     "success": "動画関連データが読み込み完了しました。利用を開始してください！",
     "transcript_failed": "動画情報の取得に失敗しました",

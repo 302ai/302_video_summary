@@ -1,51 +1,83 @@
 "use server"
 
+import { isAudioSource } from "./audio"
 import { logger } from "./logger"
 
 /**
- * Checks if the given video URL is usable.
- * @param url - The video URL to check.
- * @returns Returns a Promise that resolves to `true` if the URL is usable and the content type is video; otherwise, `false`.
+ * 检查给定的视频或音频 URL 是否可用。
+ * @param url - 要检查的媒体 URL。
+ * @returns 返回一个 Promise，解析为 `true` 如果 URL 可用并且内容类型是视频或音频；否则为 `false`。
  */
 export async function isVideoUrlUsable(url: string): Promise<boolean> {
+  // Skip check for YouTube URLs since they use a different player
+  if (url.includes('youtube.com')) {
+    return true
+  }
+
+  // Extract actual URL from proxy URL
   if (url.includes('/video-proxy')) {
     const _url = new URL(url, 'http://localhost:3000')
     url = _url.searchParams.get('url')!
   }
+
   try {
-    // Attempt to send a HEAD request
+    // First check if it's an audio source
+    const audioType = await isAudioSource(url)
+    if (audioType) {
+      return true
+    }
+
+    // If not audio, proceed with video check
+    // Try HEAD request first
     let response = await fetch(url, {
       method: 'HEAD',
     })
 
-    // If the HEAD request is rejected (e.g., 405 Method Not Allowed), try a partial GET request
+    // If HEAD request fails (e.g., 405 Method Not Allowed), try partial GET request
     if (!response.ok) {
-      // Send a GET request with a Range header to avoid downloading the entire video
       response = await fetch(url, {
         method: 'GET',
         headers: {
-          Range: 'bytes=0-0', // Request the first byte
+          Range: 'bytes=0-0', // Request first byte only
         },
       })
     }
 
-    // Check if the response is successful
+    // Check if response is successful
     if (!response.ok) {
-      logger.warn(`Request failed with status code: ${response.status}`)
+      logger.warn(`URL check failed, status: ${response.status}, url: ${url}`)
       return false
     }
 
-    // Check if the content type is video
-    const contentType = response.headers.get('Content-Type')
-    if (contentType && (contentType.startsWith('video/') || contentType.startsWith('url-media') || contentType.startsWith('audio/mpeg') || contentType.startsWith('application/octet-stream') || contentType.startsWith('application/x-mpegURL'))) {
-      return true
-    } else {
-      logger.warn(`Content type is not video: ${contentType}`)
+    // Check content type
+    const contentType = response.headers.get('Content-Type')?.toLowerCase()
+    const validContentTypes = [
+      'video/',
+      'url-media',
+      'application/octet-stream',
+      'application/x-mpegurl',
+      'application/vnd.apple.mpegurl'
+    ]
+
+    const isValidContentType = contentType &&
+      validContentTypes.some(type => contentType.startsWith(type))
+
+    if (!isValidContentType) {
+      logger.warn(`Invalid content type: ${contentType}, url: ${url}`)
       return false
     }
+
+    // Check content length if available
+    const contentLength = response.headers.get('Content-Length')
+    if (contentLength && parseInt(contentLength) === 0) {
+      logger.warn(`Empty content length for url: ${url}`)
+      return false
+    }
+
+    return true
+
   } catch (error) {
-    // Catch any network or parsing errors
-    logger.error(`Error checking URL: %o`, error)
+    logger.error(`URL check error for ${url}: %o`, error)
     return false
   }
 }

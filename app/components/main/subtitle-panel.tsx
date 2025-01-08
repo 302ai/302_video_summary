@@ -1,9 +1,10 @@
 import { useClientTranslation } from '@/app/hooks/use-client-translation'
-import { useCurrentSubtitles } from '@/app/hooks/use-current-subtitles'
+import { Subtitle, useCurrentSubtitles } from '@/app/hooks/use-current-subtitles'
 import { useIsSharePath } from '@/app/hooks/use-is-share-path'
 import { languages } from '@/app/i18n/settings'
-import { Subtitle, useVideoInfoStore } from '@/app/stores/use-video-info-store'
+import {  useVideoInfoStore } from '@/app/stores/use-video-info-store'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -20,9 +21,10 @@ import { ReloadIcon } from '@radix-ui/react-icons'
 import { MediaPlayerInstance } from '@vidstack/react'
 import ISO639 from 'iso-639-1'
 import { debounce } from 'radash'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { toast } from 'react-hot-toast'
 import SubtitleItem from '../subtitles/item'
+import { VirtualizedSubtitleList } from '../subtitles/virtualized-list'
 
 export const SubtitlePanel = ({
   player,
@@ -147,11 +149,11 @@ export const SubtitlePanel = ({
 
   const subtitleTypes = useMemo(
     () => [
-      { label: 'vtt', value: 'vtt' },
-      { label: 'srt', value: 'srt' },
-      { label: 'txt', value: 'txt' },
+      { label: t('home:main.subtitles.vtt_format'), value: 'vtt' },
+      { label: t('home:main.subtitles.srt_format'), value: 'srt' },
+      { label: t('home:main.subtitles.txt_format'), value: 'txt' },
     ],
-    []
+    [t]
   )
 
   const [selectedSubtitleType, setSelectedSubtitleType] = useState(
@@ -239,115 +241,163 @@ export const SubtitlePanel = ({
   ])
 
   const [inputValue, setInputValue] = useState('')
+  const debouncedSearchTextRef = useRef('')
   const [debouncedSearchText, setDebouncedSearchText] = useState('')
 
-  const debouncedSearch = useCallback((value: string) => {
-    debounce({ delay: 300 }, (value) => {
+  const debouncedSearch = useMemo(() =>
+    debounce({ delay: 300 }, (value: string) => {
+      debouncedSearchTextRef.current = value
       setDebouncedSearchText(value)
-    })(value)
-  }, [])
+    })
+  , [])
 
   useEffect(() => {
     debouncedSearch(inputValue)
   }, [inputValue, debouncedSearch])
 
   const filteredSubtitles = useMemo(() => {
-    if (!debouncedSearchText) return currentSubtitles
+    if (!debouncedSearchTextRef.current) return currentSubtitles
 
     return currentSubtitles?.filter((subtitle) =>
-      subtitle.text.toLowerCase().includes(debouncedSearchText.toLowerCase())
+      subtitle.text.toLowerCase().includes(debouncedSearchTextRef.current.toLowerCase())
     )
-  }, [debouncedSearchText, currentSubtitles])
+  }, [debouncedSearchTextRef.current, currentSubtitles])
+
+  const videoRef = useRef<HTMLMediaElement | null>(null)
+  const layoutChangeTimeoutRef = useRef<NodeJS.Timeout>()
+
+  useEffect(() => {
+    return () => {
+      if (layoutChangeTimeoutRef.current) {
+        clearTimeout(layoutChangeTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleLayoutChange = useCallback(() => {
+    if (layoutChangeTimeoutRef.current) {
+      clearTimeout(layoutChangeTimeoutRef.current)
+    }
+
+    layoutChangeTimeoutRef.current = setTimeout(() => {
+      videoRef.current = document.querySelector('video')
+    }, 100)
+  }, [])
+
+  useEffect(() => {
+    videoRef.current = document.querySelector('video')
+
+    window.addEventListener('resize', handleLayoutChange)
+    return () => {
+      window.removeEventListener('resize', handleLayoutChange)
+    }
+  }, [handleLayoutChange])
+
+  const [currentTime, setCurrentTime] = useState(0)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const updateTime = () => {
+      const time = video.currentTime
+      if (time !== currentTime) {
+        setCurrentTime(time)
+      }
+    }
+
+    // Update more frequently for smoother scrolling
+    const interval = setInterval(updateTime, 100)
+    video.addEventListener('timeupdate', updateTime)
+
+    return () => {
+      clearInterval(interval)
+      video.removeEventListener('timeupdate', updateTime)
+    }
+  }, [currentTime])
 
   return (
-    <div className={cn('flex h-full flex-col justify-between', className)}>
-      <div className='flex items-center justify-center gap-4 p-2'>
-        <Select onValueChange={setSelectedLanguage} value={selectedLanguage}>
-          <SelectTrigger className='flex-1'>
-            <SelectValue
-              placeholder={t(
-                'home:main.subtitles.translate_subtitle_placeholder'
-              )}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {langs.map((language) => (
-              <SelectItem key={language.key} value={language.key}>
-                {language.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedLanguage !== 'Original' && !isSharePage ? (
-          hasTranslation ? (
-            <Button onClick={handleTranslate} disabled={isTranslating}>
+    <div className={cn('flex h-full flex-col', className)}>
+      <div className="flex h-full flex-col gap-3 p-3">
+        <div className="flex items-center gap-2 w-full">
+          <Select onValueChange={setSelectedLanguage} value={selectedLanguage} >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder={t('home:main.subtitles.translate_subtitle_placeholder')} />
+            </SelectTrigger>
+            <SelectContent>
+              {langs.map((language) => (
+                <SelectItem key={language.key} value={language.key}>
+                  {language.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedLanguage !== 'Original' && !isSharePage && (
+            <Button
+              onClick={handleTranslate}
+              disabled={isTranslating}
+              className="w-[120px]"
+            >
               {isTranslating ? (
                 <>
-                  <ReloadIcon className='mr-2 h-4 w-4 animate-spin' />
-                  {t('home:main.subtitles.translating')}
-                </>
-              ) : (
-                t('home:main.subtitles.reTranslate_subtitle')
-              )}
-            </Button>
-          ) : (
-            <Button onClick={handleTranslate}>
-              {isTranslating ? (
-                <>
-                  <ReloadIcon className='mr-2 h-4 w-4 animate-spin' />
+                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
                   {t('home:main.subtitles.translating')}
                 </>
               ) : (
                 t('home:main.subtitles.translate_subtitle')
               )}
             </Button>
-          )
-        ) : null}
-      </div>
-      <div className='p-2'>
+          )}
+        </div>
+
         <Input
-          className='w-full'
+          type="text"
           placeholder={t('home:main.subtitles.search_placeholder')}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
+          className="w-full"
         />
-      </div>
-      <ScrollArea className='flex-1 pr-2'>
-        <div className='flex flex-col gap-2 p-2'>
-          {filteredSubtitles?.map((subtitle, index) => (
-            <SubtitleItem
-              key={index}
-              subtitle={subtitle}
-              searchText={debouncedSearchText}
-              onClick={(startTime) => {
-                player?.remoteControl.seek(startTime)
+
+        <div className="flex-1 min-h-0">
+          <VirtualizedSubtitleList
+            subtitles={filteredSubtitles || []}
+            height={height - 180}
+            width="100%"
+            currentTime={currentTime}
+            searchText={debouncedSearchText}
+            onSubtitleClick={(time) => {
+              if (player) {
+                player.currentTime = time
                 setActiveTab('video')
-              }}
-            />
-          ))}
+              }
+            }}
+            className="rounded-md"
+          />
         </div>
-      </ScrollArea>
-      <div className='flex items-center justify-center gap-4 p-2'>
-        <Select
-          onValueChange={setSelectedSubtitleType}
-          value={selectedSubtitleType}
-        >
-          <SelectTrigger className='flex-1'>
-            <SelectValue
-              placeholder={t('home:main.subtitles.select_placeholder')}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {subtitleTypes.map((subtitleType) => (
-              <SelectItem key={subtitleType.value} value={subtitleType.value}>
-                {subtitleType.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={handleDownload}>
-          {t('home:main.subtitles.download_subtitle')}
-        </Button>
+
+        <div className="flex items-center gap-2 w-full">
+          <Select
+            value={selectedSubtitleType}
+            onValueChange={setSelectedSubtitleType}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder={t('home:main.subtitles.select_format')} />
+            </SelectTrigger>
+            <SelectContent>
+              {subtitleTypes.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {t(`home:main.subtitles.${type.value}_format`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={handleDownload}
+            className="w-[120px]"
+          >
+            {t('home:main.subtitles.download_subtitle')}
+          </Button>
+        </div>
       </div>
     </div>
   )

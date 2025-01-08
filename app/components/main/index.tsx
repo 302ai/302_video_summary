@@ -2,76 +2,89 @@
 import { useCurrentSubtitles } from '@/app/hooks/use-current-subtitles'
 import { useIsSharePath } from '@/app/hooks/use-is-share-path'
 import { useVideoInfoStore } from '@/app/stores/use-video-info-store'
+import { useUIStore } from '@/app/stores/use-ui-store'
 import { CardContent } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { MediaPlayerInstance } from '@vidstack/react'
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useMediaQuery } from 'react-responsive'
 import { useClientTranslation } from '../../hooks/use-client-translation'
 import Card from '../card'
 import { VideoPlayer } from '../player'
-import SubtitleItem from '../subtitles/item'
 import AIPanel from './ai-panel'
 import { BriefPanel } from './brief-panel'
 import { DetailPanel } from './detail-panel'
 import { SubtitlePanel } from './subtitle-panel'
+import { ArticlePanel } from './article-panel'
+import VirtualizedSubtitleList from '../subtitles/virtualized-list'
+import { Switch } from '@/components/ui/switch'
 
 const DESKTOP_WIDTH = 768
 
+// Add type definitions for panel props
+interface PanelProps {
+  activeTab: string
+  setActiveTab: (tab: string) => void
+  height: number
+  videoPlayer: React.ReactNode
+  videoDimensions: { width: number; height: number }
+  isLoadingDimensions: boolean
+  currentTime: number
+  player: React.RefObject<MediaPlayerInstance>
+  shouldShowVideo: (platform?: string, position?: 'left' | 'right' | 'center') => boolean
+  className?: string
+  platform?: string
+  position: 'left' | 'right' | 'center'
+}
+
 const ContentPanel = forwardRef<
   HTMLDivElement,
-  {
-    activeTab: string
-    setActiveTab: (tab: string) => void
-    className?: string
-    platform?: string
-    height: number
-    position: 'left' | 'right' | 'center'
-  }
->(({ activeTab, setActiveTab, className, platform, height, position }, ref) => {
-  const {
-    title,
-    poster,
-    realVideoUrl,
-    videoType,
-    id,
-    language,
-    originalSubtitles,
-    translatedSubtitles,
-  } = useVideoInfoStore((state) => ({
-    title: state.title,
-    poster: state.poster,
-    realVideoUrl: state.realVideoUrl,
-    videoType: state.videoType,
-    id: state.id,
-    language: state.language,
-    originalSubtitles: state.originalSubtitles,
-    translatedSubtitles: state.translatedSubtitles,
-  }))
-
+  PanelProps
+>(({ activeTab, setActiveTab, className, platform, height, position, videoPlayer, videoDimensions, isLoadingDimensions, currentTime, player, shouldShowVideo }, ref) => {
   const currentSubtitles = useCurrentSubtitles()
-
-  const player = useRef<MediaPlayerInstance>(null)
-
+  const [searchText, setSearchText] = useState('')
+  const [syncSubtitles, setSyncSubtitles] = useState(true)
   const { t } = useClientTranslation()
+  // Calculate video dimensions that fit within container
+  const { videoHeight, videoWidth } = useMemo(() => {
+    // Get container width (card width)
+    const containerWidth = document.querySelector('.video-container')?.clientWidth || 0
 
-  const isDesktop = useMediaQuery({ minWidth: DESKTOP_WIDTH })
+    // If we're still loading or failed to get dimensions, fall back to 16:9
+    if (videoDimensions.width === 0 || videoDimensions.height === 0 || isLoadingDimensions) {
+      const heightByAspectRatio = (containerWidth * 9) / 16
+      if (heightByAspectRatio > height) {
+        // Scale down proportionally to fit height
+        return {
+          videoHeight: height,
+          videoWidth: (height * 16) / 9
+        }
+      }
+      return {
+        videoHeight: heightByAspectRatio,
+        videoWidth: containerWidth
+      }
+    }
 
-  const videoHeight = height / 2
-  const videoSubtitlesHeight = height - videoHeight
+    // Calculate dimensions based on actual video aspect ratio
+    const heightByAspectRatio = (containerWidth * videoDimensions.height) / videoDimensions.width
+    if (heightByAspectRatio > height) {
+      // Scale down proportionally to fit height
+      return {
+        videoHeight: height,
+        videoWidth: (height * videoDimensions.width) / videoDimensions.height
+      }
+    }
+    return {
+      videoHeight: heightByAspectRatio,
+      videoWidth: containerWidth
+    }
+  }, [videoDimensions, height, isLoadingDimensions])
 
-  const shouldShowVideo = useMemo(() => {
-    return (
-      (!(
-        (isDesktop && platform === 'mobile') ||
-        (!isDesktop && platform === 'desktop')
-      ) ||
-        (position === 'center' && !isDesktop)) &&
-      position !== 'right'
-    )
-  }, [isDesktop, platform, position])
+  // Calculate remaining height for subtitles
+  const remainingHeight = height - videoHeight
+  const showSubtitles = remainingHeight >= 200
 
   return (
     <Card className={cn('w-full', className)}>
@@ -80,36 +93,47 @@ const ContentPanel = forwardRef<
         ref={ref}
         style={{ height: height }}
       >
-        <div className={cn('h-full', activeTab === 'video' ? '' : 'hidden')}>
-          <div style={{ height: videoHeight }}>
-            {shouldShowVideo && (
-              <VideoPlayer
-                ref={player}
-                src={realVideoUrl || ''}
-                type={videoType || ''}
-                id={id || ''}
-                poster={poster}
-                title={title || ''}
-                translatedSubtitles={translatedSubtitles}
-                language={language}
-              />
-            )}
-          </div>
-
-          <ScrollArea style={{ height: videoSubtitlesHeight }} className='pr-2'>
-            <div className='flex flex-col gap-2 p-2'>
-              {currentSubtitles?.map((subtitle, index) => (
-                <SubtitleItem
-                  key={index}
-                  subtitle={subtitle}
-                  onClick={(startTime) => {
-                    player.current?.remoteControl.seek(startTime)
-                  }}
-                />
-              ))}
+        <div className={cn('flex flex-col h-full', activeTab === 'video' ? '' : 'hidden')}>
+          {shouldShowVideo(platform, position) && (
+            <div className="w-full flex justify-center video-container" style={{ position: 'relative' }}>
+              <div className="relative w-full" style={{
+                maxWidth: videoWidth,
+                height: videoHeight
+              }}>
+                <div className="video-mount-point" style={{ width: '100%', height: '100%' }} />
+              </div>
             </div>
-          </ScrollArea>
-          {/* <NoContent message={t('home:main.video.no_video_content')} /> */}
+          )}
+
+          {showSubtitles && (
+            <div className="w-full flex-1">
+              <div className="flex items-center justify-end px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {t('home:main.auto_scroll')}
+                  </span>
+                  <Switch
+                    checked={syncSubtitles}
+                    onCheckedChange={setSyncSubtitles}
+                  />
+                </div>
+              </div>
+              <VirtualizedSubtitleList
+                subtitles={currentSubtitles || []}
+                height={remainingHeight - 40}
+                width="100%"
+                currentTime={currentTime}
+                searchText={searchText}
+                sync={syncSubtitles}
+                onSubtitleClick={(time) => {
+                  if (player.current) {
+                    player.current.currentTime = time
+                  }
+                }}
+                className="rounded-md pl-2"
+              />
+            </div>
+          )}
         </div>
         <SubtitlePanel
           player={player.current}
@@ -117,10 +141,9 @@ const ContentPanel = forwardRef<
           className={cn(activeTab === 'subtitles' ? '' : 'hidden')}
           setActiveTab={setActiveTab}
         />
-        {activeTab === 'brief' && <BriefPanel height={height} className='' />}
-        {activeTab === 'detailed' && (
-          <DetailPanel height={height} className='' />
-        )}
+        <BriefPanel height={height} className={cn(activeTab === 'brief' ? '' : 'hidden')} />
+        <DetailPanel height={height} className={cn(activeTab === 'detailed' ? '' : 'hidden')} />
+        <ArticlePanel height={height} className={cn(activeTab === 'article' ? '' : 'hidden')} />
         <AIPanel
           className={cn(activeTab === 'ai' ? '' : 'hidden')}
           setActiveTab={setActiveTab}
@@ -170,12 +193,15 @@ const BottomTabs = forwardRef<
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
       <TabsList
-        className={cn('mt-4 grid w-full  bg-gray-200 dark:bg-gray-800', isSharePage ? 'grid-cols-2' : 'grid-cols-3')}
+        className={cn('mt-4 grid w-full  bg-gray-200 dark:bg-gray-800', isSharePage ? 'grid-cols-3' : 'grid-cols-4')}
         ref={ref}
       >
         <TabsTrigger value='brief'>{t('home:main.brief_summary')}</TabsTrigger>
         <TabsTrigger value='detailed'>
           {t('home:main.detailed_summary')}
+        </TabsTrigger>
+        <TabsTrigger value='article'>
+          {t('home:main.article_generation')}
         </TabsTrigger>
         {!isSharePage && (
           <TabsTrigger value='ai'>{t('home:main.ai_question')}</TabsTrigger>
@@ -191,11 +217,14 @@ const DesktopLeftPanel = ({
   activeTab,
   setActiveTab,
   height,
-}: {
-  activeTab: string
-  setActiveTab: (tab: string) => void
-  height: number
-}) => {
+  videoPlayer,
+  videoDimensions,
+  isLoadingDimensions,
+  currentTime,
+  player,
+  shouldShowVideo,
+  position,
+}: PanelProps) => {
   const { t } = useClientTranslation()
   const triggerRef = useRef<HTMLDivElement>(null)
   const [contentHeight, setContentHeight] = useState(0)
@@ -232,7 +261,13 @@ const DesktopLeftPanel = ({
         className='h-full'
         platform='desktop'
         height={contentHeight}
-        position='left'
+        position={position}
+        videoPlayer={videoPlayer}
+        videoDimensions={videoDimensions}
+        isLoadingDimensions={isLoadingDimensions}
+        currentTime={currentTime}
+        player={player}
+        shouldShowVideo={shouldShowVideo}
       />
     </Tabs>
   )
@@ -242,11 +277,14 @@ const DesktopRightPanel = ({
   activeTab,
   setActiveTab,
   height,
-}: {
-  activeTab: string
-  setActiveTab: (tab: string) => void
-  height: number
-}) => {
+  videoPlayer,
+  videoDimensions,
+  isLoadingDimensions,
+  currentTime,
+  player,
+  shouldShowVideo,
+  position,
+}: PanelProps) => {
   const { t } = useClientTranslation()
   const { isSharePage } = useIsSharePath()
 
@@ -269,13 +307,18 @@ const DesktopRightPanel = ({
       className='flex h-full w-full flex-col'
     >
       <TabsList
-        className={cn('mb-4 grid w-full  bg-gray-200 dark:bg-gray-800', isSharePage ? 'grid-cols-2' : 'grid-cols-3')}
+        className={cn('mb-4 grid w-full  bg-gray-200 dark:bg-gray-800', isSharePage ? 'grid-cols-3' : 'grid-cols-4')}
         ref={triggerRef}
       >
         <TabsTrigger value='brief'>{t('home:main.brief_summary')}</TabsTrigger>
         <TabsTrigger value='detailed'>
           {t('home:main.detailed_summary')}
         </TabsTrigger>
+        {!isSharePage && (
+          <TabsTrigger value='article'>
+            {t('home:main.article_generation')}
+          </TabsTrigger>
+        )}
         {!isSharePage && (
           <TabsTrigger value='ai'>{t('home:main.ai_question')}</TabsTrigger>
         )}
@@ -286,24 +329,83 @@ const DesktopRightPanel = ({
         className='h-full'
         height={contentHeight}
         platform='desktop'
-        position='right'
+        position={position}
+        videoPlayer={videoPlayer}
+        videoDimensions={videoDimensions}
+        isLoadingDimensions={isLoadingDimensions}
+        currentTime={currentTime}
+        player={player}
+        shouldShowVideo={shouldShowVideo}
       />
     </Tabs>
   )
 }
 
 export default function Main({ height }: { height: number }) {
-  const { t } = useClientTranslation()
-  const [activeTab, setActiveTab] = useState('video')
-  const [activeTabLeft, setActiveTabLeft] = useState('video')
-  const [activeTabRight, setActiveTabRight] = useState('brief')
+  const { activeTab, activeTabRight, updateField } = useUIStore(state => ({
+    activeTab: state.activeTab,
+    activeTabRight: state.activeTabRight,
+    updateField: state.updateField
+  }))
+
   const isDesktop = useMediaQuery({ minWidth: DESKTOP_WIDTH })
+  const player = useRef<MediaPlayerInstance>(null)
+  const playerContainerRef = useRef<HTMLDivElement | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 })
+  const [isLoadingDimensions, setIsLoadingDimensions] = useState(false)
+
+  // Get the current active video container
+  const getActiveVideoContainer = useCallback(() => {
+    if (isDesktop) {
+      return document.querySelector('.desktop-left .video-mount-point')
+    } else {
+      return document.querySelector('.mobile-center .video-mount-point')
+    }
+  }, [isDesktop])
+
+  // Handle video container movement
+  useEffect(() => {
+    const container = getActiveVideoContainer()
+    if (!container || !playerContainerRef.current) return
+
+    // Move the container
+    container.appendChild(playerContainerRef.current)
+  }, [isDesktop, getActiveVideoContainer])
+
+  // Create video player only once
+  const videoPlayerWrapper = useMemo(() => {
+    return (
+      <div ref={playerContainerRef} className="fixed-video-player" style={{ width: '100%', height: '100%' }}>
+        <VideoPlayer
+          ref={player}
+          aspectRatio={videoDimensions.width && videoDimensions.height ?
+            `${videoDimensions.width}/${videoDimensions.height}` :
+            '16/9'}
+          onTimeUpdate={setCurrentTime}
+        />
+      </div>
+    )
+  }, [])
+
+  // Calculate whether to show video based on current layout
+  const shouldShowVideo = useCallback((platform?: string, position?: 'left' | 'right' | 'center') => {
+    return (
+      (!(
+        (isDesktop && platform === 'mobile') ||
+        (!isDesktop && platform === 'desktop')
+      ) ||
+        (position === 'center' && !isDesktop)) &&
+      position !== 'right'
+    )
+  }, [isDesktop])
 
   const topTabsRef = useRef<HTMLDivElement>(null)
   const bottomTabsRef = useRef<HTMLDivElement>(null)
   const outerRef = useRef<HTMLDivElement>(null)
   const [mobileContentHeight, setMobileContentHeight] = useState(0)
   const [desktopContentHeight, setDesktopContentHeight] = useState(0)
+  const [activeLeftPanel, setActiveLeftPanel] = useState('video')
 
   // Mobile
   useEffect(() => {
@@ -342,6 +444,15 @@ export default function Main({ height }: { height: number }) {
     updateHeight()
   }, [height])
 
+  const setActiveTab = useCallback((value: string) => {
+    updateField('activeTab', value)
+  }, [updateField])
+
+  const setActiveTabRight = useCallback((value: string) => {
+    updateField('activeTabRight', value)
+  }, [updateField])
+
+
   return (
     <>
       <div
@@ -350,26 +461,40 @@ export default function Main({ height }: { height: number }) {
         ref={outerRef}
       >
         <div
-          className={isDesktop ? '' : 'hidden'}
+          className={isDesktop ? 'desktop-left' : 'hidden'}
           style={{ height: desktopContentHeight }}
         >
           <DesktopLeftPanel
-            activeTab={activeTabLeft}
-            setActiveTab={setActiveTabLeft}
+            activeTab={activeLeftPanel}
+            setActiveTab={setActiveLeftPanel}
             height={desktopContentHeight}
+            videoPlayer={null}
+            videoDimensions={videoDimensions}
+            isLoadingDimensions={isLoadingDimensions}
+            currentTime={currentTime}
+            player={player}
+            shouldShowVideo={shouldShowVideo}
+            position="left"
           />
         </div>
         <div
-          className={isDesktop ? '' : 'hidden'}
+          className={isDesktop ? 'desktop-right' : 'hidden'}
           style={{ height: desktopContentHeight }}
         >
           <DesktopRightPanel
             activeTab={activeTabRight}
             setActiveTab={setActiveTabRight}
             height={desktopContentHeight}
+            videoPlayer={null}
+            videoDimensions={videoDimensions}
+            isLoadingDimensions={isLoadingDimensions}
+            currentTime={currentTime}
+            player={player}
+            shouldShowVideo={shouldShowVideo}
+            position="right"
           />
         </div>
-        <div className={isDesktop ? 'hidden' : 'flex flex-col'}>
+        <div className={isDesktop ? 'hidden' : 'flex flex-col mobile-center'}>
           <TopTabs
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -383,6 +508,12 @@ export default function Main({ height }: { height: number }) {
             platform='mobile'
             height={mobileContentHeight}
             position='center'
+            videoPlayer={null}
+            videoDimensions={videoDimensions}
+            isLoadingDimensions={isLoadingDimensions}
+            currentTime={currentTime}
+            player={player}
+            shouldShowVideo={shouldShowVideo}
           />
 
           <BottomTabs
@@ -391,6 +522,10 @@ export default function Main({ height }: { height: number }) {
             ref={bottomTabsRef}
           />
         </div>
+      </div>
+      {/* Initial render of video player */}
+      <div style={{ display: 'none' }}>
+        {videoPlayerWrapper}
       </div>
     </>
   )

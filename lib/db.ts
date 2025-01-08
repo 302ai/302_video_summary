@@ -5,7 +5,6 @@ import {
   VideoInfoState,
 } from '@/app/stores/use-video-info-store'
 import Dexie, { type Table } from 'dexie'
-import { omit } from 'radash'
 
 class SessionDatabase extends Dexie {
   sessions!: Table<Omit<VideoInfoState, '_hasHydrated'>>
@@ -21,13 +20,25 @@ class SessionDatabase extends Dexie {
 const db = new SessionDatabase()
 
 export const save = async (session: VideoInfoState & VideoInfoActions) => {
-  const result = omit(session, [
-    '_hasHydrated',
-    'refresh',
-    'setHasHydrated',
-    'updateField',
-    'updateAll',
-  ])
+  const result = {
+    id: session.id,
+    originalVideoUrl: session.originalVideoUrl,
+    realVideoUrl: session.realVideoUrl,
+    title: session.title,
+    poster: session.poster,
+    videoType: session.videoType,
+    language: session.language,
+    originalSubtitles: session.originalSubtitles,
+    translatedSubtitles: session.translatedSubtitles,
+    brief: session.brief,
+    detail: session.detail,
+    backgroundType: session.backgroundType,
+    customArticlePrompt: session.customArticlePrompt,
+    chatMessages: session.chatMessages,
+    articles: session.articles,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+  }
 
   const data = await db.sessions.get(result.id)
 
